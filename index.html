@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vector Master Prompt Studio</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex items-center justify-center p-4">
+
+  <div class="max-w-xl w-full bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl">
+    
+    <!-- Header -->
+    <div class="text-center mb-6">
+      <div class="inline-block bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-xs px-3 py-1 rounded-full mb-2 font-mono">
+        Production Serverless Tool
+      </div>
+      <h1 class="text-2xl font-bold text-white tracking-tight">Vector Master Prompt Studio</h1>
+      <p class="text-xs text-slate-400 mt-1">ভেক্টর আর্ট আপলোড করুন, এআই মাস্টার প্রম্পট তৈরি করে দেবে।</p>
+    </div>
+
+    <!-- Upload Dropzone -->
+    <div id="dropArea" class="border-2 border-dashed border-slate-700 hover:border-indigo-500 bg-slate-950/50 rounded-2xl p-6 text-center cursor-pointer transition flex flex-col items-center justify-center min-h-[160px]">
+      <input id="fileInput" type="file" accept="image/*" class="hidden">
+      
+      <div id="placeholderUI" class="flex flex-col items-center">
+        <svg class="w-10 h-10 text-slate-500 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+        </svg>
+        <p class="text-sm font-medium text-slate-300">ভেক্টর ফাইল ড্রপ বা সিলেক্ট করুন</p>
+        <p class="text-[11px] text-slate-500 mt-1">PNG, JPG বা SVG (ইমেজ ফরম্যাট)</p>
+      </div>
+
+      <img id="preview" class="max-h-48 rounded-xl hidden object-contain border border-slate-800 shadow-md">
+    </div>
+
+    <!-- Generate Button -->
+    <button id="genBtn" class="w-full mt-5 bg-indigo-600 hover:bg-indigo-500 active:scale-[0.99] text-white text-sm font-semibold py-3.5 rounded-xl transition shadow-lg shadow-indigo-600/20 disabled:opacity-50 flex items-center justify-center gap-2">
+      <span>Generate Master Prompt</span>
+    </button>
+
+    <!-- Result Area -->
+    <div id="resultArea" class="mt-5 hidden">
+      <div class="flex justify-between items-center mb-2 px-1">
+        <span class="text-[11px] font-semibold text-indigo-400 uppercase tracking-wider">Master Prompt (Copy & Paste):</span>
+        <button id="copyBtn" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-1 rounded-lg border border-slate-700 transition">
+          কপি করুন
+        </button>
+      </div>
+      <div id="promptOutput" class="bg-slate-950 border border-slate-800 rounded-2xl p-4 text-xs font-mono text-slate-200 leading-relaxed max-h-52 overflow-y-auto select-all"></div>
+    </div>
+
+  </div>
+
+  <script>
+    let base64Data = null;
+    let mimeType = 'image/png';
+
+    const dropArea = document.getElementById('dropArea');
+    const fileInput = document.getElementById('fileInput');
+    const preview = document.getElementById('preview');
+    const placeholderUI = document.getElementById('placeholderUI');
+    const genBtn = document.getElementById('genBtn');
+    const resultArea = document.getElementById('resultArea');
+    const promptOutput = document.getElementById('promptOutput');
+    const copyBtn = document.getElementById('copyBtn');
+
+    dropArea.addEventListener('click', () => fileInput.click());
+
+    fileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      mimeType = file.type || 'image/png';
+
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        base64Data = ev.target.result.split(',')[1];
+        preview.src = ev.target.result;
+        preview.classList.remove('hidden');
+        placeholderUI.classList.add('hidden');
+      };
+      reader.readAsDataURL(file);
+    });
+
+    genBtn.addEventListener('click', async () => {
+      if (!base64Data) {
+        alert("অনুগ্রহ করে একটি ভেক্টর ইমেজ আপলোড করুন!");
+        return;
+      }
+
+      genBtn.disabled = true;
+      genBtn.innerHTML = `<span>ভেক্টর এনালাইজ হচ্ছে... একটু সময় দিন</span>`;
+
+      try {
+        const res = await fetch("/.netlify/functions/get-prompt", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ imageBase64: base64Data, mimeType: mimeType })
+        });
+
+        const data = await res.json();
+        if (data.error) throw new Error(data.error);
+
+        promptOutput.innerText = data.prompt;
+        resultArea.classList.remove('hidden');
+      } catch (err) {
+        alert("সমস্যা হয়েছে: " + err.message);
+      } finally {
+        genBtn.disabled = false;
+        genBtn.innerHTML = `<span>Generate Master Prompt</span>`;
+      }
+    });
+
+    copyBtn.addEventListener('click', () => {
+      navigator.clipboard.writeText(promptOutput.innerText);
+      copyBtn.innerText = "কপি হয়েছে!";
+      setTimeout(() => copyBtn.innerText = "কপি করুন", 2000);
+    });
+  </script>
+</body>
+</html>
