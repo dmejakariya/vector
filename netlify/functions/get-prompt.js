@@ -24,33 +24,37 @@ exports.handler = async function(event, context) {
       };
     }
 
-    const systemPrompt = `Analyze this vector graphic, icon, or illustration in extreme detail. 
-Act as an elite reverse-prompt engineer specializing in generative vector graphics.
-Generate a single, comprehensive MASTER PROMPT so that AI image generators (Midjourney, Ideogram, Imagen, Leonardo) can recreate the exact same vector art style, line weights, color scheme, and composition.
+    const systemPrompt = `Analyze this vector graphic, icon, or illustration deeply. 
+Act as an expert AI prompt engineer. 
+Write a complete, single-paragraph MASTER PROMPT so Midjourney, Ideogram, or Imagen can recreate this exact artwork style, subjects, and vector composition.
+Include:
+- Subject and elements description
+- Style details (e.g., flat 2D vector, clean stroke, minimal icon set, rounded corners, SVG aesthetic)
+- Colors and backgrounds (isolated on pure white background, solid flat fills, no realistic 3D shading)
+Output ONLY the final master prompt text. No markdown, no preface, no labels.`;
 
-Requirements to include in output:
-- Exact subject description and composition
-- Specific art style (e.g. flat 2D vector, clean stroke, minimal glyph icon, SVG aesthetic, Adobe Illustrator vector art)
-- Exact color scheme details (e.g. solid black on white, pastel tones, clean flat fills)
-- Rules: isolated on pure white background, sharp edges, no realistic 3D textures, no shadows
+    const imageUrl = `data:${mimeType || "image/png"};base64,${imageBase64}`;
 
-Return ONLY the raw master prompt text. No markdown backticks, no introduction, no labels.`;
-
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${API_KEY}`, {
+    const response = await fetch("https://api.x.ai/v1/chat/completions", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${API_KEY}`
+      },
       body: JSON.stringify({
-        contents: [{
-          parts: [
-            { text: systemPrompt },
-            {
-              inline_data: {
-                mime_type: mimeType || "image/png",
-                data: imageBase64
+        model: "grok-vision-beta",
+        messages: [
+          {
+            role: "user",
+            content: [
+              { type: "text", text: systemPrompt },
+              {
+                type: "image_url",
+                image_url: { url: imageUrl }
               }
-            }
-          ]
-        }]
+            ]
+          }
+        ]
       })
     });
 
@@ -59,11 +63,11 @@ Return ONLY the raw master prompt text. No markdown backticks, no introduction, 
     if (data.error) {
       return {
         statusCode: 500,
-        body: JSON.stringify({ error: data.error.message || "Google AI Error" })
+        body: JSON.stringify({ error: data.error.message || "xAI API Error" })
       };
     }
 
-    const generatedPrompt = data.candidates[0].content.parts[0].text;
+    const generatedPrompt = data.choices[0].message.content;
 
     return {
       statusCode: 200,
