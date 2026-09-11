@@ -39,10 +39,10 @@ Output ONLY the final master prompt text. No markdown, no preface, no labels.`;
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${API_KEY}`
+        "Authorization": `Bearer ${API_KEY.trim()}`
       },
       body: JSON.stringify({
-        model: "grok-vision-beta",
+        model: "grok-2-vision-1212",
         messages: [
           {
             role: "user",
@@ -60,10 +60,11 @@ Output ONLY the final master prompt text. No markdown, no preface, no labels.`;
 
     const data = await response.json();
 
-    if (data.error) {
+    if (!response.ok || data.error) {
+      const errDetail = data.error?.message || JSON.stringify(data);
       return {
-        statusCode: 500,
-        body: JSON.stringify({ error: data.error.message || "xAI API Error" })
+        statusCode: response.status,
+        body: JSON.stringify({ error: `xAI Error: ${errDetail}` })
       };
     }
 
