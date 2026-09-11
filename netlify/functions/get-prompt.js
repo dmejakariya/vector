@@ -39,8 +39,8 @@ Output ONLY the final master prompt text. No markdown, no preface, no labels.`;
           parts: [
             { text: systemPrompt },
             {
-              inline_data: {
-                mime_type: mimeType || "image/png",
+              inlineData: {
+                mimeType: mimeType || "image/png",
                 data: imageBase64
               }
             }
@@ -50,7 +50,7 @@ Output ONLY the final master prompt text. No markdown, no preface, no labels.`;
     };
 
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${API_KEY.trim()}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-002:generateContent?key=${API_KEY.trim()}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
