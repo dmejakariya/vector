@@ -42,7 +42,7 @@ Output ONLY the final master prompt text. No markdown, no preface, no labels.`;
         "Authorization": `Bearer ${API_KEY.trim()}`
       },
       body: JSON.stringify({
-        model: "grok-2-vision-1212",
+        model: "grok-2-vision-latest",
         messages: [
           {
             role: "user",
