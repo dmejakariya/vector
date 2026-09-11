@@ -33,42 +33,49 @@ Include:
 - Colors and backgrounds (isolated on pure white background, solid flat fills, no realistic 3D shading)
 Output ONLY the final master prompt text. No markdown, no preface, no labels.`;
 
-    const imageUrl = `data:${mimeType || "image/png"};base64,${imageBase64}`;
-
-    const response = await fetch("https://api.x.ai/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${API_KEY.trim()}`
-      },
-      body: JSON.stringify({
-        model: "grok-2-vision-latest",
-        messages: [
-          {
-            role: "user",
-            content: [
-              { type: "text", text: systemPrompt },
-              {
-                type: "image_url",
-                image_url: { url: imageUrl }
+    const payload = {
+      contents: [
+        {
+          parts: [
+            { text: systemPrompt },
+            {
+              inline_data: {
+                mime_type: mimeType || "image/png",
+                data: imageBase64
               }
-            ]
-          }
-        ]
-      })
-    });
+            }
+          ]
+        }
+      ]
+    };
+
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY.trim()}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      }
+    );
 
     const data = await response.json();
 
     if (!response.ok || data.error) {
       const errDetail = data.error?.message || JSON.stringify(data);
       return {
-        statusCode: response.status,
-        body: JSON.stringify({ error: `xAI Error: ${errDetail}` })
+        statusCode: response.status || 500,
+        body: JSON.stringify({ error: `Gemini Error: ${errDetail}` })
       };
     }
 
-    const generatedPrompt = data.choices[0].message.content;
+    const generatedPrompt = data.candidates?.[0]?.content?.parts?.[0]?.text;
+
+    if (!generatedPrompt) {
+      return {
+        statusCode: 500,
+        body: JSON.stringify({ error: "No prompt generated from image." })
+      };
+    }
 
     return {
       statusCode: 200,
